@@ -41,6 +41,15 @@ def load_field_boundaries(path: str = None) -> gpd.GeoDataFrame:
     if gdf.empty:
         raise ValueError(f"GeoJSON file is empty: {file_path}")
         
+    # Apply column mapping/normalization
+    try:
+        mapping = config.COLUMN_MAPPING_GEOJSON
+    except AttributeError:
+        mapping = {}
+    if mapping:
+        mapping_filter = {k: v for k, v in mapping.items() if k in gdf.columns}
+        gdf = gdf.rename(columns=mapping_filter)
+        
     # Validate structure
     required_cols = {'field_id', 'field_name', 'area_ha', 'geometry'}
     missing = required_cols - set(gdf.columns)
@@ -75,6 +84,15 @@ def load_ndvi_data(path: str = None) -> pd.DataFrame:
     if df.empty:
         raise ValueError(f"NDVI CSV file is empty: {file_path}")
         
+    # Apply column mapping/normalization
+    try:
+        mapping = config.COLUMN_MAPPING_NDVI
+    except AttributeError:
+        mapping = {}
+    if mapping:
+        mapping_filter = {k: v for k, v in mapping.items() if k in df.columns}
+        df = df.rename(columns=mapping_filter)
+        
     # Validate structure
     required_cols = {'field_id', 'acquisition_date', 'ndvi_mean', 'ndvi_median', 'cloud_cover'}
     missing = required_cols - set(df.columns)
@@ -88,6 +106,7 @@ def load_ndvi_data(path: str = None) -> pd.DataFrame:
         raise ValueError(f"Failed to parse acquisition_date in YYYY-MM-DD format: {e}")
         
     return df
+
 
 def validate_field_data(gdf: gpd.GeoDataFrame) -> Dict[str, Any]:
     """Validates the GeoJSON structure, columns, and geometries.

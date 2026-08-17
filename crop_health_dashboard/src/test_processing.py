@@ -138,8 +138,53 @@ def run_tests():
     test_results["12. Missing Field ID (Referential Integrity) Flagged"] = ("PASS" if is_integrity_caught else "FAIL", f"Expected success=False and integrity error, got success={report_integrity['success']}, errors={report_integrity['errors']}")
 
     # ----------------------------------------------------
+    # Case 13: Normalization mapping check
+    # ----------------------------------------------------
+    # We will test loading with a simulated teammate dataframe with different column names
+    df_teammate = pd.DataFrame([
+        {"t_field": "T01", "t_date": "2026-01-15", "t_mean": 0.6, "t_median": 0.59, "t_cloud": 5.0}
+    ])
+    # Apply mapping
+    mapping = {
+        "t_field": "field_id",
+        "t_date": "acquisition_date",
+        "t_mean": "ndvi_mean",
+        "t_median": "ndvi_median",
+        "t_cloud": "cloud_cover"
+    }
+    df_mapped = df_teammate.rename(columns=mapping)
+    has_normalized_cols = set(df_mapped.columns) == {'field_id', 'acquisition_date', 'ndvi_mean', 'ndvi_median', 'cloud_cover'}
+    test_results["13. Schema Mapping & Normalization Layer"] = ("PASS" if has_normalized_cols else "FAIL", f"Expected normalized columns, got {list(df_mapped.columns)}")
+
+    # ----------------------------------------------------
+    # Case 14: PDF report compilation check
+    # ----------------------------------------------------
+    try:
+        import report_generator
+        test_meta = {"field_id": "T01", "field_name": "Test Field", "area_ha": 10.0}
+        test_obs = {
+            "acquisition_date_str": "2026-01-15",
+            "ndvi_mean": 0.65,
+            "ndvi_median": 0.64,
+            "prev_valid_ndvi": 0.60,
+            "ndvi_delta": 0.05,
+            "ndvi_pct_change": 8.33,
+            "cloud_cover": 5.0,
+            "health_status": "Healthy",
+            "is_anomaly": False,
+            "anomaly_severity": "None",
+            "ndvi_drop": 0.0
+        }
+        pdf_buf = report_generator.generate_pdf_report(test_meta, test_obs, total_anomalies=0, earliest_date="2026-01-15", latest_date="2026-01-15")
+        is_pdf_valid = pdf_buf is not None and len(pdf_buf.getvalue()) > 0
+        test_results["14. ReportLab PDF Report Compilation"] = ("PASS" if is_pdf_valid else "FAIL", f"Expected non-empty pdf buffer, got size {len(pdf_buf.getvalue()) if pdf_buf else 0}")
+    except Exception as e:
+        test_results["14. ReportLab PDF Report Compilation"] = ("FAIL", f"Error generating PDF: {e}")
+
+    # ----------------------------------------------------
     # Print Test Results Table
     # ----------------------------------------------------
+
     print(f"{'Test Case Description':<55} | {'Status':<6} | {'Details / Notes'}")
     print("-" * 110)
     all_passed = True

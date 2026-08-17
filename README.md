@@ -1,83 +1,103 @@
 # AI-Based Intelligent Cropland Monitoring & Crop Health Analysis
 
-This is a final-year college project repository. The primary focus of this specific branch is the implementation of the **Crop Health Dashboard** module.
-
-## Project Modules
-- **CNN-Transformer field segmentation** (Teammate module)
-- **Sentinel-2 satellite imagery processing** (Teammate module)
-- **NDVI computation** (Teammate module)
-- **Crop Health Dashboard** (This module)
+This is the final-year college project repository. The primary focus of this module is the **Crop Health Dashboard** implementation.
 
 ---
 
-## Crop Health Dashboard Module
+## 1. Crop Health Dashboard Overview
+The **Crop Health Dashboard** is a farmer-facing interface designed to monitor vegetation greenness index trajectories over time, detect sudden anomalies/stress events (due to drought, weed competition, pest attacks, or disease), visualize field boundaries, and compile downloadable PDF health summaries.
 
-The Crop Health Dashboard is built using **Streamlit**, **Pandas**, **GeoPandas**, **Plotly**, **Folium**, and **ReportLab**. It visualizes temporal vegetation indices (NDVI), identifies anomalies (crop stress, pest attacks, droughts), displays interactive field maps colored by current crop health, and generates professional PDF reports for farmers.
+---
 
-### Project Architecture & Directory Layout
-
-The workspace is organized to keep teammate integrations modular and separate. All code related to the Crop Health Dashboard resides within the `crop_health_dashboard/` directory.
-
+## 2. Directory Layout & Architecture
 ```
 MajorProject/
 │
 ├── crop_health_dashboard/
-│   ├── app.py                      # Main Streamlit application entry point (Phase 4)
-│   ├── config.py                   # Centralized configuration (thresholds, paths, map styles)
+│   ├── app.py                      # Streamlit dashboard interface
+│   ├── config.py                   # Thresholds, colors, paths, mapping aliases
 │   ├── data/
-│   │   ├── mock_fields.geojson     # Generated mock field boundary data
-│   │   └── mock_ndvi_timeseries.csv# Generated mock NDVI time-series data
+│   │   ├── mock_fields.geojson     # Polygon boundaries for agricultural fields
+│   │   └── mock_ndvi_timeseries.csv# NDVI observations with cloud cover
 │   │
 │   └── src/
 │       ├── __init__.py
-│       ├── data_loader.py          # GeoJSON and CSV parser (Phase 2)
-│       ├── ndvi_analysis.py        # Anomaly detection and statistics (Phase 2)
-│       ├── map_utils.py            # Folium map generation and styling (Phase 3)
-│       ├── report_generator.py     # PDF report generation (Phase 5)
-│       └── mock_generator.py       # Standalone script to generate mock dataset files
+│       ├── data_loader.py          # Data ingestion, column mapping & bounds validation
+│       ├── ndvi_analysis.py        # Analytics (deltas, classification, anomalies)
+│       ├── report_generator.py     # ReportLab PDF report compiler
+│       ├── mock_generator.py       # Standalone generator for mock datasets
+│       └── test_processing.py      # 14-test regression and unit test suite
 │
-├── requirements.txt                # Python dependencies
+├── requirements.txt                # System requirements
 └── README.md                       # This file
+```
+
+The data flow is structured as follows:
+```
+REAL TEAM DATA / MOCK DATA
+          ↓
+  data_loader.py (Normalization & Schema Validation)
+          ↓
+  ndvi_analysis.py (Analytics & Anomaly Core)
+          ↓
+  app.py (Streamlit Visualization & Map Controls)
+          ↓
+  report_generator.py (PDF Report Compiler)
 ```
 
 ---
 
-## Phase 1: Setup and Mock Data Validation
-
-In Phase 1, we set up the directory structure, configured the system parameters, and generated a realistic dataset representing fictional agricultural fields with various crop cycles and stress scenarios.
-
-### Configured Thresholds (`crop_health_dashboard/config.py`)
-- **Healthy Crop Threshold:** NDVI $\ge 0.60$
-- **Poor Crop/Soil Threshold:** NDVI $< 0.30$
-- **Moderate Crop Range:** $0.30 \le \text{NDVI} < 0.60$
-- **Anomaly Drop Threshold:** $\ge 0.20$ drop between consecutive monthly acquisitions.
-- **Maximum Cloud Cover Filter:** $20.0\%$ (Acquisitions with cloud cover greater than this are filtered from crop health metrics).
-
-### Mock Fields Scenarios
-1. **F01 (North Wheat Field):** Healthy and stable double-crop cycle (high NDVI).
-2. **F02 (West Ridge Field):** Poor/fallow field with consistently low NDVI ($0.15 - 0.28$).
-3. **F03 (East Maize Field):** Growing crop cycle starting low and rising to healthy peaks, dropping post-harvest in winter.
-4. **F04 (South Barley Field):** Stress event scenario. Healthy early-season NDVI ($0.72$), followed by a sudden insect/drought drop in July to $0.38$ (a drop of $0.34$), and gradual recovery.
-5. **F05 (Central Clover Field):** Moderate health ($0.35 - 0.58$) with normal variation.
+## 3. Configured Parameter Thresholds (`config.py`)
+- **Healthy Crop Threshold:** NDVI $\ge 0.60$ (Shaded green band)
+- **Moderate Crop Health:** $0.30 \le \text{NDVI} < 0.60$ (Shaded orange/amber band)
+- **Poor Crop Health:** NDVI $< 0.30$ (Shaded crimson/red band)
+- **Stress Drop Anomaly Threshold:** $\ge 0.20$ drop between consecutive valid acquisitions.
+- **Maximum Cloud Filter Threshold:** $20.0\%$ (Acquisitions with cloud cover exceeding this are excluded from status assessments by default).
 
 ---
 
-## Installation & Running Validation
+## 4. Key Functional Features
+1. **Interactive Field Map (Folium):** Centers automatically on the selected field boundary. The boundary polygon is color-coded in real-time according to the selected date's health status (Green: Healthy, Yellow/Orange: Moderate, Red: Poor, Grey: Cloudy/Excluded).
+2. **Interactive Plotly Time-Series:** Visualizes the crop trajectory across all dates. Includes color-shaded horizontal health zones, highlighting cloudy observations and stress events with markers, and dynamically updating with sidebar controls.
+3. **Farmer PDF Report Generator:** Compiles a layout containing metadata, current parameters, relative change, stress analysis, and actionable advice.
+4. **Data Normalization Layer:** Integrates columns from teammates' models. Renaming configurations can be modified directly within `crop_health_dashboard/config.py` (e.g., mapping custom column names to internal schemas).
+5. **Robust Validation:** Checks referential integrity, ranges, date formats, nulls, duplicates, and boundary voids.
 
-To set up the environment and run the internal consistency checks:
+---
 
-1. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 5. Installation & Usage Instructions
 
-2. **Generate Mock Data Programmatically (Optional - Already generated):**
-   ```bash
-   python crop_health_dashboard/src/mock_generator.py
-   ```
+### Step 1: Initialize Virtual Environment & Install Dependencies
+Run the following commands inside PowerShell or CMD to set up:
+```powershell
+# Create virtual environment
+python -m venv venv
 
-3. **Validate Dataset Quality & Consistency:**
-   This command executes a standard-library check to verify matching geometries, schemas, referential integrity between GeoJSON/CSV, and check that the mock data contains the necessary scenarios (healthy, moderate, poor, cloud cover, and anomaly drops).
-   ```bash
-   python crop_health_dashboard/src/validate_data.py
-   ```
+# Activate virtual environment
+.\venv\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+### Step 2: Run Consistency Validation Checks
+Validate that the loaded GeoJSON and NDVI CSV are consistent:
+```powershell
+python crop_health_dashboard/src/test_processing.py
+```
+This runs the 14 automated unit/regression tests covering schema mappings, bounds checks, anomalies, and PDF compilation.
+
+### Step 3: Run the Streamlit Dashboard
+```powershell
+python -m streamlit run crop_health_dashboard/app.py
+```
+Open [http://localhost:8501](http://localhost:8501) in your browser.
+
+---
+
+## 6. Real-Data Integration Support
+To load real data from teammate modules (field segmentation, Sentinel-2 preprocessing, or NDVI computation):
+1. Place their `.geojson` and `.csv` files under the `crop_health_dashboard/data/` folder.
+2. Open `crop_health_dashboard/config.py`.
+3. Update `GEOJSON_PATH` and `CSV_PATH` to point to their files.
+4. Update `COLUMN_MAPPING_GEOJSON` and `COLUMN_MAPPING_NDVI` dictionaries to map their output columns to the internal variables required by the dashboard.

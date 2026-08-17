@@ -22,6 +22,26 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 GEOJSON_PATH = os.path.join(DATA_DIR, "mock_fields.geojson")
 CSV_PATH = os.path.join(DATA_DIR, "mock_ndvi_timeseries.csv")
 
+# Column Normalization Mapping for teammate integration (Real data support)
+# Maps incoming teammate column names to our internal dashboard schema:
+# field_id, field_name, area_ha, geometry for GeoJSON
+# field_id, acquisition_date, ndvi_mean, ndvi_median, cloud_cover for CSV
+COLUMN_MAPPING_GEOJSON = {
+    "field_id": "field_id",
+    "field_name": "field_name",
+    "area_ha": "area_ha",
+    "geometry": "geometry"
+}
+
+COLUMN_MAPPING_NDVI = {
+    "field_id": "field_id",
+    "acquisition_date": "acquisition_date",
+    "ndvi_mean": "ndvi_mean",
+    "ndvi_median": "ndvi_median",
+    "cloud_cover": "cloud_cover"
+}
+
+
 # Map Configuration
 MAP_DEFAULT_ZOOM = 14
 MAP_CENTER_LATITUDE = 28.6139  # Fictional cluster near Delhi coordinates (can be updated for any region)
