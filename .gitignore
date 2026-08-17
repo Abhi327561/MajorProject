@@ -1,8 +1,24 @@
 venv/
 __pycache__/
 *.pyc
-.DS_Store
 .venv/
+
+# Model checkpoints
+model/checkpoints/
+
+# Generated model outputs
+model/outputs/
+
+# Large/generated files
+*.pt
+*.pth
+*.tif
+*.tiff
+
+# Python build files
 build/
 dist/
 *.egg-info/
+
+# OS files
+.DS_Store
