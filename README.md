@@ -1,103 +1,204 @@
 # AI-Based Intelligent Cropland Monitoring & Crop Health Analysis
 
-This is the final-year college project repository. The primary focus of this module is the **Crop Health Dashboard** implementation.
+An end-to-end intelligent agricultural monitoring system combining deep learning-based field boundary segmentation (CTHBNet) with an interactive temporal crop health analysis and reporting dashboard.
 
 ---
 
-## 1. Crop Health Dashboard Overview
-The **Crop Health Dashboard** is a farmer-facing interface designed to monitor vegetation greenness index trajectories over time, detect sudden anomalies/stress events (due to drought, weed competition, pest attacks, or disease), visualize field boundaries, and compile downloadable PDF health summaries.
+## 📌 System Architecture & Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      Sentinel-2 Multi-Spectral Imagery                      │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 Module 1: Deep Learning Segmentation (model/)                │
+│  - CTHBNet Architecture (Hybrid CNN + Vision Transformer Encoder-Decoder)   │
+│  - Boundary-Aware Loss (BCE + Dice + Sobel-based Edge Loss)                 │
+│  - Metrics: Boundary F1, IoU, Precision, Recall                             │
+│  - Checkpoint Progression Evaluation & Visual Overlays                      │
+│  - Automated GeoJSON Polygon Boundary Extraction                            │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                       GeoJSON Fields & NDVI Timeseries
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│            Module 2: Crop Health & Analytics Dashboard (dashboard/)          │
+│  - Data Ingestion, Schema Normalization & Bounds Validation                 │
+│  - NDVI Trajectory Analytics & Stress Drop Anomaly Detection                │
+│  - Interactive Geospatial Mapping (Folium) with Dynamic Status Coloring     │
+│  - Time-Series Trajectory Visualizer (Plotly) with Cloud Masking            │
+│  - Automated Farmer PDF Report Compiler (ReportLab)                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 2. Directory Layout & Architecture
+## 📂 Repository Structure
+
 ```
 MajorProject/
 │
-├── crop_health_dashboard/
-│   ├── app.py                      # Streamlit dashboard interface
-│   ├── config.py                   # Thresholds, colors, paths, mapping aliases
+├── crop_health_dashboard/          # Interactive Streamlit Web Application
+│   ├── app.py                      # Main Streamlit dashboard UI & visual controls
+│   ├── config.py                   # Classification thresholds, colors, paths & column aliases
 │   ├── data/
-│   │   ├── mock_fields.geojson     # Polygon boundaries for agricultural fields
-│   │   └── mock_ndvi_timeseries.csv# NDVI observations with cloud cover
-│   │
+│   │   ├── mock_fields.geojson     # GeoJSON polygon boundaries for cropland fields
+│   │   └── mock_ndvi_timeseries.csv# NDVI observations with cloud cover & date indices
 │   └── src/
 │       ├── __init__.py
-│       ├── data_loader.py          # Data ingestion, column mapping & bounds validation
-│       ├── ndvi_analysis.py        # Analytics (deltas, classification, anomalies)
-│       ├── report_generator.py     # ReportLab PDF report compiler
-│       ├── mock_generator.py       # Standalone generator for mock datasets
-│       └── test_processing.py      # 14-test regression and unit test suite
+│       ├── data_loader.py          # Data ingestion, schema validation & bounds checking
+│       ├── ndvi_analysis.py        # Analytics core (NDVI classification, delta & anomaly engine)
+│       ├── report_generator.py     # PDF health report compiler using ReportLab
+│       ├── mock_generator.py       # Standalone generator for synthetic benchmark data
+│       ├── validate_data.py        # Standard library dataset consistency & schema validator
+│       └── test_processing.py      # Automated 14-test regression and validation suite
 │
-├── requirements.txt                # System requirements
-└── README.md                       # This file
-```
-
-The data flow is structured as follows:
-```
-REAL TEAM DATA / MOCK DATA
-          ↓
-  data_loader.py (Normalization & Schema Validation)
-          ↓
-  ndvi_analysis.py (Analytics & Anomaly Core)
-          ↓
-  app.py (Streamlit Visualization & Map Controls)
-          ↓
-  report_generator.py (PDF Report Compiler)
+├── model/                          # Deep Learning Segmentation Pipeline (CTHBNet)
+│   ├── architecture.py             # CTHBNet model (CNN branch + ViT branch + Gated Fusion + Decoder)
+│   ├── losses.py                   # Boundary-Aware Loss (BCE + Dice + Sobel boundary loss)
+│   ├── metrics.py                  # Evaluation metrics (IoU, Boundary F1, Precision, Recall)
+│   ├── dataset.py                  # PyTorch Dataset wiring & MockCroplandDataset stand-in
+│   ├── config.py                   # Model hyperparameters, optimizer settings & input shapes
+│   ├── train.py                    # Training loop with AdamW, Cosine Annealing & checkpointing
+│   ├── evaluate.py                 # Split-level model evaluation (Loss, IoU, Boundary F1)
+│   ├── evaluate_progression.py     # Checkpoint-by-checkpoint validation progression tracking
+│   ├── visualize.py                # Prediction vs. Ground-Truth overlay visualizer
+│   ├── export_geojson.py           # Raster mask to georeferenced GeoJSON polygon exporter
+│   ├── overfit_test.py             # Single-batch sanity & convergence verification test
+│   ├── ndvi_analysis.py            # Sentinel-2 NetCDF extraction and zonal NDVI analysis
+│   ├── plot_ndvi.py                # Plotting scripts for monthly/seasonal NDVI trends
+│   ├── requirements.txt            # Deep learning dependencies (PyTorch, Torchvision, etc.)
+│   ├── checkpoints/                # Saved model weights (last.pt, best.pt, epoch snapshots)
+│   └── outputs/                    # Overlay figures, exported GeoJSONs, and NDVI plots
+│
+├── requirements.txt                # Root dependencies (Streamlit, Folium, Plotly, GeoPandas, etc.)
+└── README.md                       # Project documentation
 ```
 
 ---
 
-## 3. Configured Parameter Thresholds (`config.py`)
-- **Healthy Crop Threshold:** NDVI $\ge 0.60$ (Shaded green band)
-- **Moderate Crop Health:** $0.30 \le \text{NDVI} < 0.60$ (Shaded orange/amber band)
-- **Poor Crop Health:** NDVI $< 0.30$ (Shaded crimson/red band)
-- **Stress Drop Anomaly Threshold:** $\ge 0.20$ drop between consecutive valid acquisitions.
-- **Maximum Cloud Filter Threshold:** $20.0\%$ (Acquisitions with cloud cover exceeding this are excluded from status assessments by default).
+## 🧠 Module 1: CTHBNet Field Boundary Segmentation (`model/`)
+
+`CTHBNet` (Convolution-Transformer Hybrid Boundary Network) is engineered specifically for delineating agricultural parcel boundaries from Sentinel-2 satellite imagery chips.
+
+### Key Architectural Highlights
+- **CNN Branch:** 4-stage U-Net style convolutional encoder capturing fine-grained local textures and low-level boundary gradients.
+- **Transformer Branch:** Multi-Head Self-Attention (ViT encoder) operating on deep feature maps to learn global spatial context and parcel shape geometries.
+- **Gated Fusion Module:** Learnable channel/spatial gating mechanism combining local boundary details with global context.
+- **Decoder & Skip Connections:** Multi-scale feature upsampling to restore full resolution with sharp boundary localization.
+- **Boundary-Aware Loss:** Combines Binary Cross-Entropy (BCE), Soft-Dice Loss, and a Sobel-filtered Edge Loss to prevent edge blurring and compensate for small boundary pixel fractions.
+
+### Model Execution & Scripts
+```bash
+# Navigate to model folder
+cd model
+
+# 1. Sanity check: Run overfit test on a single batch
+python overfit_test.py
+
+# 2. Train CTHBNet (with AdamW, Cosine Annealing, and auto-checkpointing)
+python train.py --epochs 30 --lr 1e-4 --batch_size 16
+
+# 3. Resume training from a checkpoint
+python train.py --resume checkpoints/last.pt --epochs 50
+
+# 4. Evaluate performance on validation/test sets
+python evaluate.py --checkpoint checkpoints/best.pt --split test
+
+# 5. Track metric progression across all saved epoch checkpoints
+python evaluate_progression.py --split val --out_csv outputs/metrics_progression.csv
+
+# 6. Generate boundary visual overlay comparisons (cyan = GT, magenta = pred, yellow = overlap)
+python visualize.py --checkpoint checkpoints/best.pt --split val --num_samples 6
+
+# 7. Export predicted boundaries as GeoJSON polygons for the dashboard
+python export_geojson.py --checkpoint checkpoints/best.pt --split test --out outputs/predictions.geojson
+```
 
 ---
 
-## 4. Key Functional Features
-1. **Interactive Field Map (Folium):** Centers automatically on the selected field boundary. The boundary polygon is color-coded in real-time according to the selected date's health status (Green: Healthy, Yellow/Orange: Moderate, Red: Poor, Grey: Cloudy/Excluded).
-2. **Interactive Plotly Time-Series:** Visualizes the crop trajectory across all dates. Includes color-shaded horizontal health zones, highlighting cloudy observations and stress events with markers, and dynamically updating with sidebar controls.
-3. **Farmer PDF Report Generator:** Compiles a layout containing metadata, current parameters, relative change, stress analysis, and actionable advice.
-4. **Data Normalization Layer:** Integrates columns from teammates' models. Renaming configurations can be modified directly within `crop_health_dashboard/config.py` (e.g., mapping custom column names to internal schemas).
-5. **Robust Validation:** Checks referential integrity, ranges, date formats, nulls, duplicates, and boundary voids.
+## 🌾 Module 2: Crop Health & Analytics Dashboard (`crop_health_dashboard/`)
+
+An interactive, farmer-centric decision support interface providing temporal vegetation health insights and field analytics.
+
+### Key Dashboard Capabilities
+1. **Interactive Geospatial Map (Folium):** 
+   - Dynamically zooms to selected field boundaries.
+   - Color-codes field polygons based on selected date's health score (Green: Healthy, Yellow/Orange: Moderate, Red: Poor, Grey: Cloudy/Excluded).
+2. **Temporal Vegetation Trajectories (Plotly):** 
+   - Time-series plot of mean and median NDVI values.
+   - Shaded health zone bands (Healthy: $\ge 0.60$, Moderate: $0.30 - 0.60$, Poor: $< 0.30$).
+   - Marker annotations for cloud-contaminated passes and sudden stress drop events.
+3. **Automated PDF Crop Health Reports (ReportLab):** 
+   - One-click downloadable summary reports including farmer metadata, health status, stress alerts, and customized agronomic recommendations.
+4. **Data Validation & Resilient Processing:**
+   - Robust column mapping aliases in `config.py` to seamlessly connect external model outputs.
+   - Built-in sanity checks for cloud cover masking, duplicate dates, and invalid coordinate geometries.
 
 ---
 
-## 5. Installation & Usage Instructions
+## ⚙️ Configuration & Parameter Thresholds
 
-### Step 1: Initialize Virtual Environment & Install Dependencies
-Run the following commands inside PowerShell or CMD to set up:
+Configured in `crop_health_dashboard/config.py` and `model/config.py`:
+
+| Parameter | Default Value | Description |
+|---|---|---|
+| `NDVI_HEALTHY_THRESHOLD` | `0.60` | NDVI values $\ge 0.60$ classified as **Healthy** |
+| `NDVI_POOR_THRESHOLD` | `0.30` | NDVI values $< 0.30$ classified as **Poor / Severe Stress** |
+| `ANOMALY_DROP_THRESHOLD` | `0.20` | Sudden NDVI drop $\ge 0.20$ between clear visits triggers stress alert |
+| `MAX_CLOUD_COVER` | `20.0%` | Acquisitions exceeding cloud threshold are filtered from health scoring |
+| `BOUNDARY_TOLERANCE_PX` | `2 px` | Tolerance radius for Boundary F1 evaluation |
+| `IN_CHANNELS` | `4` | Input image channels (B02 Blue, B03 Green, B04 Red, B08 NIR) |
+| `IMG_SIZE` | `256` | Chip dimension ($256 \times 256$ pixels) |
+
+---
+
+## 🚀 Installation & Quick Start
+
+### 1. Environment Setup
+
 ```powershell
-# Create virtual environment
-python -m venv venv
+# Clone the repository and navigate to root directory
+cd MajorProject
 
-# Activate virtual environment
+# Create and activate virtual environment
+python -m venv venv
 .\venv\Scripts\activate
 
-# Install requirements
+# Install dashboard and model dependencies
 pip install -r requirements.txt
+pip install -r model/requirements.txt
 ```
 
-### Step 2: Run Consistency Validation Checks
-Validate that the loaded GeoJSON and NDVI CSV are consistent:
+### 2. Run Test & Validation Suites
+
 ```powershell
+# Run the 14-test regression and unit test suite
 python crop_health_dashboard/src/test_processing.py
-```
-This runs the 14 automated unit/regression tests covering schema mappings, bounds checks, anomalies, and PDF compilation.
 
-### Step 3: Run the Streamlit Dashboard
+# Run standalone dataset consistency verification
+python crop_health_dashboard/src/validate_data.py
+```
+
+### 3. Launch the Crop Health Dashboard
+
 ```powershell
+# Start the Streamlit application
 python -m streamlit run crop_health_dashboard/app.py
 ```
-Open [http://localhost:8501](http://localhost:8501) in your browser.
+Open **[http://localhost:8501](http://localhost:8501)** in your web browser.
 
 ---
 
-## 6. Real-Data Integration Support
-To load real data from teammate modules (field segmentation, Sentinel-2 preprocessing, or NDVI computation):
-1. Place their `.geojson` and `.csv` files under the `crop_health_dashboard/data/` folder.
-2. Open `crop_health_dashboard/config.py`.
-3. Update `GEOJSON_PATH` and `CSV_PATH` to point to their files.
-4. Update `COLUMN_MAPPING_GEOJSON` and `COLUMN_MAPPING_NDVI` dictionaries to map their output columns to the internal variables required by the dashboard.
+## 🔄 End-to-End Real Data Integration
+
+To integrate outputs from upstream preprocessing or segmentation runs into the dashboard:
+1. Export model polygon predictions using `model/export_geojson.py` or place your `.geojson` under `crop_health_dashboard/data/`.
+2. Place your NDVI time-series CSV under `crop_health_dashboard/data/`.
+3. Open `crop_health_dashboard/config.py` and update:
+   - `GEOJSON_PATH` and `CSV_PATH`
+   - `COLUMN_MAPPING_GEOJSON` and `COLUMN_MAPPING_NDVI` dictionaries to map your pipeline's column headers to the dashboard schema.
+4. Refresh the Streamlit dashboard to visualize your updated data.
