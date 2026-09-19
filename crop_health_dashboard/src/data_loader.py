@@ -50,6 +50,15 @@ def load_field_boundaries(path: str = None) -> gpd.GeoDataFrame:
         mapping_filter = {k: v for k, v in mapping.items() if k in gdf.columns}
         gdf = gdf.rename(columns=mapping_filter)
         
+    if 'field_id' in gdf.columns:
+        gdf['field_id'] = gdf['field_id'].astype(str)
+
+    if 'field_name' not in gdf.columns and 'field_id' in gdf.columns:
+        gdf['field_name'] = gdf['field_id'].apply(lambda x: f"Field {x}")
+
+    if 'area_ha' not in gdf.columns:
+        gdf['area_ha'] = 1.0  # Fallback default area
+        
     # Validate structure
     required_cols = {'field_id', 'field_name', 'area_ha', 'geometry'}
     missing = required_cols - set(gdf.columns)
@@ -93,6 +102,14 @@ def load_ndvi_data(path: str = None) -> pd.DataFrame:
         mapping_filter = {k: v for k, v in mapping.items() if k in df.columns}
         df = df.rename(columns=mapping_filter)
         
+    # If cloud_cover is missing in model outputs, default it to 0.0
+    if 'cloud_cover' not in df.columns:
+        df['cloud_cover'] = 0.0
+
+    # Ensure field_id is string
+    if 'field_id' in df.columns:
+        df['field_id'] = df['field_id'].astype(str)
+        
     # Validate structure
     required_cols = {'field_id', 'acquisition_date', 'ndvi_mean', 'ndvi_median', 'cloud_cover'}
     missing = required_cols - set(df.columns)
@@ -101,9 +118,9 @@ def load_ndvi_data(path: str = None) -> pd.DataFrame:
         
     # Convert acquisition_date to datetime type
     try:
-        df['acquisition_date'] = pd.to_datetime(df['acquisition_date'], format='%Y-%m-%d', errors='raise')
+        df['acquisition_date'] = pd.to_datetime(df['acquisition_date'], errors='coerce')
     except Exception as e:
-        raise ValueError(f"Failed to parse acquisition_date in YYYY-MM-DD format: {e}")
+        raise ValueError(f"Failed to parse acquisition_date in date format: {e}")
         
     return df
 

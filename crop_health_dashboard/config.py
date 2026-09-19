@@ -17,15 +17,18 @@ ANOMALY_DROP_THRESHOLD = 0.20
 # Satellite acquisitions with cloud cover percentage above this threshold will be filtered out
 MAX_CLOUD_COVER = 20.0  # percentage
 
-# Paths to Data Files (can be replaced with real teammate files later)
+# Paths to Data Files (Model outputs and Benchmark datasets)
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 GEOJSON_PATH = os.path.join(DATA_DIR, "mock_fields.geojson")
 CSV_PATH = os.path.join(DATA_DIR, "mock_ndvi_timeseries.csv")
 
-# Column Normalization Mapping for teammate integration (Real data support)
-# Maps incoming teammate column names to our internal dashboard schema:
-# field_id, field_name, area_ha, geometry for GeoJSON
-# field_id, acquisition_date, ndvi_mean, ndvi_median, cloud_cover for CSV
+# Real Model Output Paths
+MODEL_OUTPUTS_DIR = os.path.join(os.path.dirname(__file__), "..", "model", "outputs", "ndvi")
+MODEL_CSV_PATH = os.path.join(MODEL_OUTPUTS_DIR, "field_ndvi.csv")
+MODEL_HEALTH_PATH = os.path.join(MODEL_OUTPUTS_DIR, "field_health_classification.csv")
+MODEL_GEOJSON_PATH = os.path.join(os.path.dirname(__file__), "..", "model", "outputs", "predictions_test.geojson")
+
+# Column Normalization Mapping for teammate / Model integration
 COLUMN_MAPPING_GEOJSON = {
     "field_id": "field_id",
     "field_name": "field_name",
@@ -36,16 +39,19 @@ COLUMN_MAPPING_GEOJSON = {
 COLUMN_MAPPING_NDVI = {
     "field_id": "field_id",
     "acquisition_date": "acquisition_date",
+    "date": "acquisition_date",
     "ndvi_mean": "ndvi_mean",
+    "mean_ndvi": "ndvi_mean",
     "ndvi_median": "ndvi_median",
+    "median_ndvi": "ndvi_median",
     "cloud_cover": "cloud_cover"
 }
 
 
 # Map Configuration
-MAP_DEFAULT_ZOOM = 14
-MAP_CENTER_LATITUDE = 28.6139  # Fictional cluster near Delhi coordinates (can be updated for any region)
-MAP_CENTER_LONGITUDE = 77.2090
+MAP_DEFAULT_ZOOM = 15
+MAP_CENTER_LATITUDE = 29.7200  # Agricultural cropland basin (Karnal farm belt)
+MAP_CENTER_LONGITUDE = 76.9500
 
 # UI Styling Hex Colors
 COLOR_HEALTHY = "#2CA02C"   # Deep green
